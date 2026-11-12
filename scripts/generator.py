@@ -1,6 +1,7 @@
 import hashlib
 import json
 import keyword
+import re
 
 from pydantic import BaseModel
 from pydantic.alias_generators import to_snake
@@ -8,6 +9,8 @@ from pydantic.alias_generators import to_snake
 from .vocabulary import BASIC, ids
 
 RENAME_CLASS = {"3DModel": "ThreeDModel"}
+NAME = re.compile(r"^[A-Za-z][A-Za-z0-9]*$")
+MEMBER = re.compile(r"^[A-Za-z0-9]+$")
 SCALARS = ("Text", "Url", "Number", "Integer", "Boolean", "Date", "DateTime", "Time")
 RESERVED = set(dir(BaseModel)) | {"id", "ref", "schema_type", "to_jsonld", "to_script"}
 TAKEN = {
@@ -39,6 +42,7 @@ class Generator:
         self.renamed = {}
         self.model_names = {self.class_name(name) for name in self.keep}
         self.enum_names = {self.class_name(name) for name in self.enum_classes}
+        self.check_names()
         self.modules = self.collect_modules()
         self.check_field_names()
 
@@ -164,6 +168,18 @@ class Generator:
         if len(set(modules.values())) != len(modules):
             raise ValueError("two names give one module name")
         return modules
+
+    def check_names(self):
+        offenders = [name for name in self.model_names | self.enum_names if not NAME.match(name)]
+        offenders += [
+            self.vocab.short(prop) for prop in self.ranges if not NAME.match(self.vocab.short(prop))
+        ]
+        for enum in self.enum_classes:
+            for member in self.vocab.members[enum]:
+                if not MEMBER.match(self.vocab.short(member["@id"])):
+                    offenders.append(self.vocab.short(member["@id"]))
+        if offenders:
+            raise ValueError(f"names that are not plain letters and digits: {sorted(offenders)}")
 
     def check_field_names(self):
         for name in self.order:

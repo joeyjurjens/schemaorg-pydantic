@@ -126,3 +126,30 @@ def test_a_field_is_snake_case_and_keeps_the_schema_org_name_as_alias(files):
 
 def test_an_enum_member_is_upper_case_and_its_value_is_the_schema_org_address(files):
     assert 'OUT_OF_STOCK = "https://schema.org/OutOfStock"' in files["models/item_availability.py"]
+
+
+def with_node(node):
+    return Vocabulary([*MINI, node])
+
+
+def test_a_class_name_that_is_not_plain_letters_and_digits_is_refused():
+    evil = {"@id": "schema:Evil(object): import os #", "@type": "rdfs:Class"}
+    with pytest.raises(ValueError, match="not plain letters and digits"):
+        Generator(with_node(evil), {})
+
+
+def test_a_property_name_that_is_not_plain_letters_and_digits_is_refused():
+    evil = {
+        "@id": "schema:x = __import__('os')",
+        "@type": "rdf:Property",
+        "schema:domainIncludes": {"@id": "schema:Thing"},
+        "schema:rangeIncludes": {"@id": "schema:Text"},
+    }
+    with pytest.raises(ValueError, match="not plain letters and digits"):
+        Generator(with_node(evil), {})
+
+
+def test_an_enum_member_that_is_not_plain_letters_and_digits_is_refused():
+    evil = {"@id": "schema:Bad-Member", "@type": "schema:ItemAvailability"}
+    with pytest.raises(ValueError, match="not plain letters and digits"):
+        Generator(with_node(evil), {})
