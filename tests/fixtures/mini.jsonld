@@ -1,0 +1,158 @@
+{
+  "@context": {},
+  "@graph": [
+    {
+      "@id": "schema:Thing",
+      "@type": "rdfs:Class",
+      "rdfs:comment": "The most generic type."
+    },
+    {
+      "@id": "schema:Product",
+      "@type": "rdfs:Class",
+      "rdfs:subClassOf": {
+        "@id": "schema:Thing"
+      }
+    },
+    {
+      "@id": "schema:Offer",
+      "@type": "rdfs:Class",
+      "rdfs:subClassOf": {
+        "@id": "schema:Thing"
+      }
+    },
+    {
+      "@id": "schema:Enumeration",
+      "@type": "rdfs:Class",
+      "rdfs:subClassOf": {
+        "@id": "schema:Thing"
+      }
+    },
+    {
+      "@id": "schema:ItemAvailability",
+      "@type": "rdfs:Class",
+      "rdfs:subClassOf": {
+        "@id": "schema:Enumeration"
+      }
+    },
+    {
+      "@id": "schema:Text",
+      "@type": [
+        "rdfs:Class",
+        "schema:DataType"
+      ]
+    },
+    {
+      "@id": "schema:Number",
+      "@type": [
+        "rdfs:Class",
+        "schema:DataType"
+      ]
+    },
+    {
+      "@id": "schema:URL",
+      "@type": [
+        "rdfs:Class",
+        "schema:DataType"
+      ],
+      "rdfs:subClassOf": {
+        "@id": "schema:Text"
+      }
+    },
+    {
+      "@id": "schema:InStock",
+      "@type": "schema:ItemAvailability"
+    },
+    {
+      "@id": "schema:OutOfStock",
+      "@type": "schema:ItemAvailability"
+    },
+    {
+      "@id": "schema:name",
+      "@type": "rdf:Property",
+      "schema:domainIncludes": {
+        "@id": "schema:Thing"
+      },
+      "schema:rangeIncludes": {
+        "@id": "schema:Text"
+      }
+    },
+    {
+      "@id": "schema:url",
+      "@type": "rdf:Property",
+      "schema:domainIncludes": {
+        "@id": "schema:Thing"
+      },
+      "schema:rangeIncludes": {
+        "@id": "schema:URL"
+      }
+    },
+    {
+      "@id": "schema:yield",
+      "@type": "rdf:Property",
+      "schema:domainIncludes": {
+        "@id": "schema:Product"
+      },
+      "schema:rangeIncludes": {
+        "@id": "schema:Text"
+      }
+    },
+    {
+      "@id": "schema:offers",
+      "@type": "rdf:Property",
+      "schema:domainIncludes": {
+        "@id": "schema:Product"
+      },
+      "schema:rangeIncludes": {
+        "@id": "schema:Offer"
+      }
+    },
+    {
+      "@id": "schema:price",
+      "@type": "rdf:Property",
+      "schema:domainIncludes": {
+        "@id": "schema:Offer"
+      },
+      "schema:rangeIncludes": [
+        {
+          "@id": "schema:Number"
+        },
+        {
+          "@id": "schema:Text"
+        }
+      ]
+    },
+    {
+      "@id": "schema:availability",
+      "@type": "rdf:Property",
+      "schema:domainIncludes": {
+        "@id": "schema:Offer"
+      },
+      "schema:rangeIncludes": {
+        "@id": "schema:ItemAvailability"
+      }
+    },
+    {
+      "@id": "schema:priceCurrency",
+      "@type": "rdf:Property",
+      "schema:domainIncludes": {
+        "@id": "schema:Offer"
+      },
+      "schema:rangeIncludes": {
+        "@id": "schema:Text"
+      }
+    },
+    {
+      "@id": "schema:oldName",
+      "@type": "rdf:Property",
+      "schema:domainIncludes": {
+        "@id": "schema:Product"
+      },
+      "schema:rangeIncludes": {
+        "@id": "schema:Text"
+      },
+      "schema:supersededBy": {
+        "@id": "schema:name"
+      }
+    }
+  ]
+}

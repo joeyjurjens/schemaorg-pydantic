@@ -1,0 +1,53 @@
+name: Update schema.org
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Every Monday at 9:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_TOKEN_SCHEMAORG_PYDANTIC }}
+
+      - uses: astral-sh/setup-uv@v6
+
+      - run: uv sync
+
+      - name: Generate from the newest release
+        id: update
+        run: |
+          set +e
+          uv run python -m scripts.update --latest
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ] && [ "$status" -ne 10 ]; then exit "$status"; fi
+          echo "changed=$([ "$status" -eq 10 ] && echo true || echo false)" >> $GITHUB_OUTPUT
+
+      - name: Test
+        if: steps.update.outputs.changed == 'true'
+        run: uv run pytest
+
+      - name: Bump version
+        id: version
+        if: steps.update.outputs.changed == 'true'
+        run: |
+          uv version --bump patch
+          echo "new_version=$(uv version --short)" >> $GITHUB_OUTPUT
+
+      - name: Commit and tag
+        if: steps.update.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A src/schemaorg_pydantic scripts/pin.json pyproject.toml uv.lock
+          git commit -m "chore: sync with schema.org $(jq -r .release scripts/pin.json)"
+          git tag "v${{ steps.version.outputs.new_version }}"
+          git push && git push --tags

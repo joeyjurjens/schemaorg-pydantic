@@ -1,0 +1,35 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get schema.org release
+        id: schema
+        run: echo "version=$(jq -r .release scripts/pin.json)" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=${{ github.ref_name != 'master' && github.ref_name || inputs.tag }}
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --draft \
+            --notes "Generated from [schema.org ${{ steps.schema.outputs.version }}](https://schema.org/docs/releases.html)."

@@ -1,0 +1,4 @@
+{
+  "_comment": "Deliberate widenings of schema.org rangeIncludes, each backed by a Google doc statement. Reviewed by hand.",
+  "item": {"add": ["URL"], "doc": "https://developers.google.com/search/docs/appearance/structured-data/breadcrumb (item: URL or a subtype of Thing)"}
+}

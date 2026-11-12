@@ -1,0 +1,54 @@
+[project]
+name = "schemaorg-pydantic"
+version = "0.1.0"
+description = "Typed schema.org models for pydantic, generated from the schema.org vocabulary, with a JSON-LD writer"
+readme = "README.md"
+authors = [
+    { name = "Joey Jurjens", email = "joeyjurjens@gmail.com" }
+]
+requires-python = ">=3.10"
+license-files = ["LICENSE"]
+dependencies = [
+    "pydantic>=2.7",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Typing :: Typed",
+]
+keywords = ["schema.org", "pydantic", "json-ld", "structured-data", "seo"]
+
+[project.urls]
+Repository = "https://github.com/joeyjurjens/schemaorg-pydantic"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/schemaorg_pydantic"]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.1",
+    "pytest>=8",
+    "ruff>=0.15.18",
+    "trld>=0.3.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["vocabulary: checks the generated models against the pinned schema.org release, which is downloaded once into .cache"]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["src/schemaorg_pydantic/models", "src/schemaorg_pydantic/__init__.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
