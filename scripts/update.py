@@ -57,7 +57,10 @@ class Updater:
 
     def generate(self, data, release):
         generator = Generator(
-            Vocabulary(json.loads(data)["@graph"]),
+            Vocabulary(
+                json.loads(data)["@graph"],
+                json.loads((SCRIPTS / "pseudo_properties.json").read_text()),
+            ),
             json.loads((SCRIPTS / "range_overrides.json").read_text()),
         )
         files = generator.files(release)

@@ -1,6 +1,6 @@
 [project]
 name = "schemaorg-pydantic"
-version = "0.1.0"
+version = "0.1.1"
 description = "Typed schema.org models for pydantic, generated from the schema.org vocabulary, with a JSON-LD writer"
 readme = "README.md"
 authors = [

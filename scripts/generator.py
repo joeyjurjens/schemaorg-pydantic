@@ -172,7 +172,10 @@ class Generator:
     def check_names(self):
         offenders = [name for name in self.model_names | self.enum_names if not NAME.match(name)]
         offenders += [
-            self.vocab.short(prop) for prop in self.ranges if not NAME.match(self.vocab.short(prop))
+            self.vocab.short(prop)
+            for prop in self.ranges
+            if not NAME.match(self.vocab.short(prop))
+            and self.vocab.short(prop) not in self.vocab.pseudo
         ]
         for enum in self.enum_classes:
             for member in self.vocab.members[enum]:

@@ -120,3 +120,18 @@ def test_a_string_that_is_not_a_date_is_refused():
     for value in ("tomorrow", "12-31-2026", "2026-13-01"):
         with pytest.raises(ValidationError):
             Offer(price_valid_until=value)
+
+
+def test_a_search_action_carries_the_query_input_google_asks_for():
+    from schemaorg_pydantic import EntryPoint, Graph, SearchAction, WebSite
+
+    action = SearchAction(
+        target=EntryPoint(url_template="https://shop.example/search?q={search_term_string}"),
+        query_input="required name=search_term_string",
+    )
+    site = WebSite(
+        id="https://shop.example/#website", url="https://shop.example/", potential_action=action
+    )
+    encoded = Graph(site).encode()["@graph"][0]["potentialAction"]
+    assert encoded["query-input"] == "required name=search_term_string"
+    assert encoded["target"]["urlTemplate"] == "https://shop.example/search?q={search_term_string}"

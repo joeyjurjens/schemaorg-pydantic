@@ -27,8 +27,19 @@ def plain(value):
 
 
 class Vocabulary:
-    def __init__(self, graph):
+    def __init__(self, graph, pseudo=None):
         self.nodes = {node["@id"]: node for node in graph}
+        self.pseudo = {name for name in (pseudo or {}) if not name.startswith("_")}
+        for name, spec in (pseudo or {}).items():
+            if name.startswith("_"):
+                continue
+            self.nodes[f"schema:{name}"] = {
+                "@id": f"schema:{name}",
+                "@type": "rdf:Property",
+                "rdfs:comment": spec["comment"],
+                "schema:domainIncludes": {"@id": f"schema:{spec['domain']}"},
+                "schema:rangeIncludes": [{"@id": f"schema:{item}"} for item in spec["range"]],
+            }
         self.classes = {
             name: node
             for name, node in self.nodes.items()

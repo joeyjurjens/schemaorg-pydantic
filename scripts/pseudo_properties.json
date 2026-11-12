@@ -1,0 +1,9 @@
+{
+  "_comment": "Properties that schema.org leaves to a convention and that a Google doc asks for. Each is added to the vocabulary before the models are generated. Reviewed by hand.",
+  "query-input": {
+    "domain": "SearchAction",
+    "range": ["Text", "PropertyValueSpecification"],
+    "comment": "The input of the query, as Google reads it for a site search: required name=search_term_string.",
+    "doc": "https://developers.google.com/search/docs/appearance/structured-data/sitelinks-searchbox"
+  }
+}
