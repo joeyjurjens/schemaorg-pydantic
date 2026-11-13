@@ -301,7 +301,7 @@ class Generator:
             "from typing import TYPE_CHECKING",
             "",
             "from .base import Node, Ref, SchemaEnum",
-            "from .jsonld import Graph, GraphConflict, JsonLd",
+            "from .jsonld import Graph, GraphConflict, JsonLd, JsonLdError",
             "from .lazy import LazyExports",
             "",
             f"RELEASE = {json.dumps(release)}",
