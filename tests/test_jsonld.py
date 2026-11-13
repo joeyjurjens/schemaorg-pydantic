@@ -73,3 +73,51 @@ def test_a_node_that_refers_to_itself_does_not_loop():
     shop.parent_organization = shop
     graph = Graph(shop).encode()["@graph"]
     assert graph[0]["parentOrganization"] == {"@id": "https://example.com/#o"}
+
+
+def test_json_ld_is_read_into_models_and_written_again():
+    from schemaorg_pydantic import Graph, JsonLd, Offer, Organization, Product
+
+    document = {
+        "@context": "https://schema.org",
+        "@graph": [
+            {"@type": "Organization", "@id": "https://x.example/#o", "name": "N"},
+            {
+                "@type": "Product",
+                "name": "P",
+                "offers": {
+                    "@type": "Offer",
+                    "price": 9.5,
+                    "priceCurrency": "EUR",
+                    "availability": "http://schema.org/InStock",
+                    "seller": {"@id": "https://x.example/#o"},
+                },
+            },
+        ],
+    }
+    organization, product = JsonLd.read(document)
+    assert isinstance(organization, Organization) and isinstance(product, Product)
+    assert isinstance(product.offers, Offer)
+    written = Graph(organization, product).encode()["@graph"][1]["offers"]
+    assert written["availability"] == "https://schema.org/InStock"
+    assert written["seller"] == {"@id": "https://x.example/#o"}
+
+
+def test_json_ld_that_is_not_schema_org_says_where_and_what():
+    import pytest
+
+    from schemaorg_pydantic import JsonLd, JsonLdError
+
+    cases = {
+        "not a schema.org type": {"@type": "Foo"},
+        "nam is not a property of Product": {"@type": "Product", "nam": "x"},
+        "an object needs an @type": {"name": "x"},
+        "Organization.numberOfEmployees: expected an instance of QuantitativeValue": {
+            "@type": "Organization",
+            "numberOfEmployees": 25,
+        },
+    }
+    for message, document in cases.items():
+        with pytest.raises(JsonLdError) as raised:
+            JsonLd.read(document)
+        assert message in str(raised.value)

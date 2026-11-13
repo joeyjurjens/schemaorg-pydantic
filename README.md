@@ -35,7 +35,19 @@ Fields are snake_case (`price_currency`) and written to JSON-LD under the schema
 
 A date is a `date` or `datetime`, or an ISO 8601 string (`"2026-12-31"`, `"2026-11-12T10:00:00+01:00"`). A wrong type, an unknown property, a relative URL, a date that is not ISO 8601, a value of the wrong class and an availability that is not a schema.org value all raise a `ValidationError` when the model is built, and again when a value is assigned later. Enumerations are enums whose value is the schema.org address, so `ItemAvailability.IN_STOCK` is written as the text `https://schema.org/InStock`, the way Google's documentation writes it. A strict JSON-LD processor reads that as a text value and not as an IRI, because the schema.org context does not say otherwise.
 
-This package writes JSON-LD and does not read it: a nested value must be a model, not a dict, so `Product.model_validate({...})` only works for flat data. To read JSON-LD use [TRLD](https://pypi.org/project/trld/), [PyLD](https://pypi.org/project/PyLD/) or RDFLib.
+A model takes models as nested values, not dicts, so `Product.model_validate({...})` only works for flat data. `JsonLd.read()` reads JSON-LD that is already parsed, with or without `@context` and `@graph`, into models: the `@type` picks the class, a value that is only an `@id` becomes a `Ref`, and an enumeration written as `http://schema.org/InStock` or `https://schema.org/InStock` becomes its member. Anything that is not valid schema.org raises one `JsonLdError`, whose `errors` hold a message for each fault and where it is (`Organization.numberOfEmployees: expected an instance of QuantitativeValue, got int`).
+
+```python
+from schemaorg_pydantic import Graph, JsonLd, JsonLdError
+
+try:
+    nodes = JsonLd.read(json.loads(text))
+except JsonLdError as error:
+    print(error.errors)
+Graph(*nodes).script()
+```
+
+It checks the schema.org vocabulary and the types of the values, not what a search engine asks for. For a reader that follows the whole JSON-LD specification (expansion, framing) use [TRLD](https://pypi.org/project/trld/), [PyLD](https://pypi.org/project/PyLD/) or RDFLib.
 
 In a `Graph`, a node with an `@id` that is used more than once is written once and referenced everywhere else. Two nodes with one `@id` that disagree raise `GraphConflict`; two that complement each other are merged. A property whose name is a Python keyword gets a trailing underscore (`yield_`) and is written under its own name.
 

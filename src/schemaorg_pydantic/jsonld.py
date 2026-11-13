@@ -5,6 +5,7 @@ import json
 from decimal import Decimal
 from typing import Any
 
+from pydantic import ValidationError
 from pydantic.fields import FieldInfo
 
 from .base import Node, Ref, SchemaEnum
@@ -17,7 +18,128 @@ class GraphConflict(ValueError):
     pass
 
 
+class JsonLdError(ValueError):
+    """JSON-LD that is not valid schema.org, with one message for each fault,
+    each starting with where in the document it is."""
+
+    def __init__(self, errors: list[str]) -> None:
+        super().__init__("; ".join(errors))
+        self.errors = errors
+
+
 class JsonLd:
+    @classmethod
+    def read(cls, data: Any) -> list[Node]:
+        """Reads JSON-LD that is already parsed (a dict or a list, with or
+        without @context and @graph) into models. Anything that is not valid
+        schema.org raises one JsonLdError that lists every fault."""
+        errors: list[str] = []
+        nodes: list[Node] = []
+        for item in cls.documents(data):
+            value = cls.read_value(item, errors, "")
+            nodes += value if isinstance(value, list) else [value]
+        if errors:
+            raise JsonLdError(errors)
+        return nodes
+
+    @classmethod
+    def documents(cls, data: Any) -> list[Any]:
+        items = data if isinstance(data, list) else [data]
+        found: list[Any] = []
+        for item in items:
+            if isinstance(item, dict) and "@graph" in item:
+                found += item["@graph"] if isinstance(item["@graph"], list) else [item["@graph"]]
+            else:
+                found.append(item)
+        return found
+
+    @classmethod
+    def read_value(cls, value: Any, errors: list[str], path: str) -> Any:
+        if isinstance(value, list):
+            return [
+                cls.read_value(item, errors, f"{path}[{index}]") for index, item in enumerate(value)
+            ]
+        if isinstance(value, dict):
+            if "@type" in value:
+                return cls.read_node(value, errors, path)
+            if "@value" in value:
+                return value["@value"]
+            if set(value) == {"@id"}:
+                return Ref(id=value["@id"])
+            errors.append(f"{path or 'the document'}: an object needs an @type")
+            return None
+        if isinstance(value, str) and value.startswith("http://schema.org/"):
+            return "https://schema.org/" + value[len("http://schema.org/") :]
+        return value
+
+    @classmethod
+    def enums_of(cls, annotation: Any) -> list[type[SchemaEnum]]:
+        found: list[type[SchemaEnum]] = []
+        if isinstance(annotation, type) and issubclass(annotation, SchemaEnum):
+            found.append(annotation)
+        for part in getattr(annotation, "__args__", ()):
+            found += cls.enums_of(part)
+        return found
+
+    @classmethod
+    def to_enum(cls, value: Any, annotation: Any) -> Any:
+        if isinstance(value, list):
+            return [cls.to_enum(item, annotation) for item in value]
+        if isinstance(value, str):
+            for enum in cls.enums_of(annotation):
+                try:
+                    return enum(value)
+                except ValueError:
+                    continue
+        return value
+
+    @classmethod
+    def type_class(cls, name: Any) -> type[Node] | None:
+        import schemaorg_pydantic as package
+
+        if not isinstance(name, str):
+            return None
+        short = name.rsplit("/", 1)[-1].rsplit(":", 1)[-1]
+        if short not in package.MODULES:
+            return None
+        found = getattr(package, short)
+        return found if isinstance(found, type) and issubclass(found, Node) else None
+
+    @classmethod
+    def read_node(cls, data: dict[str, Any], errors: list[str], path: str) -> Node | None:
+        names = data["@type"] if isinstance(data["@type"], list) else [data["@type"]]
+        known = [found for found in map(cls.type_class, names) if found]
+        where = path or "the document"
+        if not known:
+            errors.append(f"{where}: {names[0]!r} is not a schema.org type")
+            return None
+        node_class = max(known, key=lambda found: len(found.__mro__))
+        label = f"{path}.{node_class.__name__}" if path else node_class.__name__
+        properties: dict[str, Any] = {}
+        fields = {
+            (info.serialization_alias or name): info
+            for name, info in node_class.model_fields.items()
+        }
+        for key, value in data.items():
+            if key in ("@context", "@type"):
+                continue
+            value = cls.read_value(value, errors, f"{label}.{key}")
+            properties[key] = cls.to_enum(value, fields[key].annotation) if key in fields else value
+        try:
+            return node_class(**properties)
+        except ValidationError as error:
+            faults: dict[str, list[str]] = {}
+            for fault in error.errors():
+                name = str(fault["loc"][0]) if fault["loc"] else ""
+                if fault["type"] == "extra_forbidden":
+                    errors.append(f"{label}: {name} is not a property of {node_class.__name__}")
+                    continue
+                faults.setdefault(name, []).append(fault["msg"].removeprefix("Value error, "))
+            for name, messages in faults.items():
+                chosen = next((m for m in messages if m.startswith("expected")), messages[0])
+                errors.append(f"{label}.{name}: {chosen}")
+            return None
+
     @classmethod
     def encode(cls, node: Node) -> dict[str, Any]:
         return {"@context": CONTEXT, **cls.encode_node(node)}
